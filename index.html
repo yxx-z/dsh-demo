@@ -7,94 +7,171 @@
     <meta name="theme-color" content="#0f1014" media="(prefers-color-scheme: dark)" />
     <meta
       name="description"
-      content="一个轻量、无需登录、离线可用的待办清单，适配手机与桌面。"
+      content="一个轻量、离线可用的待办清单，适配手机与桌面。"
     />
-    <title>待办清单</title>
+    <title>登录 · 待办清单</title>
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E%E2%9C%85%3C/text%3E%3C/svg%3E"
     />
     <link rel="stylesheet" href="styles.css" />
+    <script>
+      // Avoid flashing the login form for a session that is already signed in.
+      try {
+        if (window.localStorage.getItem("dsh-demo.session.v1") === "admin") {
+          document.documentElement.classList.add("is-authed");
+        }
+      } catch (error) {
+        // Storage can be blocked; app.js will offer an in-memory session instead.
+      }
+    </script>
   </head>
   <body>
     <main class="shell">
-      <section class="app" aria-labelledby="app-title">
-        <header class="app__header">
-          <div>
-            <p class="app__eyebrow" id="today"></p>
-            <h1 class="app__title" id="app-title">待办清单</h1>
+      <section class="login" id="login-view" aria-labelledby="login-title">
+        <header class="login__head">
+          <div class="login__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect
+                x="4"
+                y="10"
+                width="16"
+                height="10.5"
+                rx="2.5"
+                stroke="currentColor"
+                stroke-width="1.7"
+              />
+              <path
+                d="M8 10V7.5a4 4 0 0 1 8 0V10"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+              />
+              <circle cx="12" cy="15.2" r="1.25" fill="currentColor" />
+            </svg>
           </div>
-          <span class="app__badge" id="remaining-badge" aria-hidden="true">0</span>
+          <p class="login__eyebrow">待办清单</p>
+          <h1 class="login__title" id="login-title">登录</h1>
+          <p class="login__hint">输入账号和密码，继续管理你的待办</p>
         </header>
 
-        <form class="add-form" id="todo-form" autocomplete="off">
-          <label class="sr-only" for="todo-input">添加一项待办</label>
-          <input
-            class="add-form__input"
-            id="todo-input"
-            name="todo"
-            type="text"
-            maxlength="200"
-            placeholder="添加一项待办…"
-            enterkeyhint="done"
-          />
-          <button class="add-form__button" type="submit" aria-label="添加待办">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path
-                d="M12 5v14M5 12h14"
-                stroke="currentColor"
-                stroke-width="2.2"
-                stroke-linecap="round"
-              />
-            </svg>
-          </button>
-        </form>
-
-        <div class="filters" role="group" aria-label="筛选待办">
-          <button
-            class="filters__btn is-active"
-            type="button"
-            data-filter="all"
-            aria-pressed="true"
-          >
-            全部
-          </button>
-          <button class="filters__btn" type="button" data-filter="active" aria-pressed="false">
-            进行中
-          </button>
-          <button class="filters__btn" type="button" data-filter="completed" aria-pressed="false">
-            已完成
-          </button>
-        </div>
-
-        <ul class="todo-list" id="todo-list"></ul>
-
-        <div class="empty" id="empty" hidden>
-          <div class="empty__icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" />
-              <path
-                d="m8.5 12.2 2.4 2.4 4.6-5"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
+        <form class="login__form" id="login-form" novalidate>
+          <div class="field">
+            <label class="field__label" for="login-username">账号</label>
+            <input
+              class="field__input"
+              id="login-username"
+              name="username"
+              type="text"
+              autocomplete="username"
+              autocapitalize="none"
+              spellcheck="false"
+              placeholder="请输入账号"
+              required
+            />
           </div>
-          <p class="empty__title" id="empty-title">还没有待办</p>
-          <p class="empty__hint" id="empty-hint">在上方输入框写下第一件事吧</p>
-        </div>
 
-        <footer class="app__footer">
-          <p class="remaining" id="remaining" aria-live="polite">剩余 0 项</p>
-          <button class="link-btn" id="clear-completed" type="button" disabled>
-            清除已完成
-          </button>
-        </footer>
+          <div class="field">
+            <label class="field__label" for="login-password">密码</label>
+            <input
+              class="field__input"
+              id="login-password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              placeholder="请输入密码"
+              required
+            />
+          </div>
+
+          <p class="login__error" id="login-error" role="alert" hidden></p>
+
+          <button class="login__submit" type="submit">登录</button>
+        </form>
       </section>
 
-      <p class="tip">数据保存在此设备的浏览器中 · 离线可用</p>
+      <div class="view" id="app-view" hidden>
+        <section class="app" aria-labelledby="app-title">
+          <header class="app__header">
+            <div>
+              <p class="app__eyebrow" id="today"></p>
+              <h1 class="app__title" id="app-title">待办清单</h1>
+            </div>
+            <span class="app__badge" id="remaining-badge" aria-hidden="true">0</span>
+          </header>
+
+          <form class="add-form" id="todo-form" autocomplete="off">
+            <label class="sr-only" for="todo-input">添加一项待办</label>
+            <input
+              class="add-form__input"
+              id="todo-input"
+              name="todo"
+              type="text"
+              maxlength="200"
+              placeholder="添加一项待办…"
+              enterkeyhint="done"
+            />
+            <button class="add-form__button" type="submit" aria-label="添加待办">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path
+                  d="M12 5v14M5 12h14"
+                  stroke="currentColor"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </button>
+          </form>
+
+          <div class="filters" role="group" aria-label="筛选待办">
+            <button
+              class="filters__btn is-active"
+              type="button"
+              data-filter="all"
+              aria-pressed="true"
+            >
+              全部
+            </button>
+            <button class="filters__btn" type="button" data-filter="active" aria-pressed="false">
+              进行中
+            </button>
+            <button class="filters__btn" type="button" data-filter="completed" aria-pressed="false">
+              已完成
+            </button>
+          </div>
+
+          <ul class="todo-list" id="todo-list"></ul>
+
+          <div class="empty" id="empty" hidden>
+            <div class="empty__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" />
+                <path
+                  d="m8.5 12.2 2.4 2.4 4.6-5"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </div>
+            <p class="empty__title" id="empty-title">还没有待办</p>
+            <p class="empty__hint" id="empty-hint">在上方输入框写下第一件事吧</p>
+          </div>
+
+          <footer class="app__footer">
+            <p class="remaining" id="remaining" aria-live="polite">剩余 0 项</p>
+            <div class="app__actions">
+              <button class="link-btn" id="clear-completed" type="button" disabled>
+                清除已完成
+              </button>
+              <button class="link-btn" id="logout" type="button">退出登录</button>
+            </div>
+          </footer>
+        </section>
+
+        <p class="tip">数据保存在此设备的浏览器中 · 离线可用</p>
+      </div>
     </main>
 
     <template id="todo-item-template">

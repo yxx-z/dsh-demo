@@ -2,6 +2,7 @@
   "use strict";
 
   var STORAGE_KEY = "dsh-demo.todos.v1";
+  var SESSION_KEY = "dsh-demo.session.v1";
   var FILTERS = ["all", "active", "completed"];
 
   var form = document.getElementById("todo-form");
@@ -17,12 +18,74 @@
   var filterButtons = Array.prototype.slice.call(document.querySelectorAll("[data-filter]"));
   var template = document.getElementById("todo-item-template");
 
+  var loginView = document.getElementById("login-view");
+  var appView = document.getElementById("app-view");
+  var loginForm = document.getElementById("login-form");
+  var usernameInput = document.getElementById("login-username");
+  var passwordInput = document.getElementById("login-password");
+  var loginError = document.getElementById("login-error");
+  var logoutButton = document.getElementById("logout");
+
   var state = {
     todos: loadTodos(),
     filter: "all",
   };
 
   var enteringId = null;
+  var sessionUser = readSession();
+
+  function readSession() {
+    try {
+      return window.localStorage.getItem(SESSION_KEY) === "admin" ? "admin" : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function saveSession(user) {
+    sessionUser = user;
+    try {
+      if (user) {
+        window.localStorage.setItem(SESSION_KEY, user);
+      } else {
+        window.localStorage.removeItem(SESSION_KEY);
+      }
+    } catch (error) {
+      // The current tab keeps working with the in-memory session only.
+    }
+  }
+
+  function isLoggedIn() {
+    return sessionUser === "admin";
+  }
+
+  function showView() {
+    var loggedIn = isLoggedIn();
+    loginView.hidden = loggedIn;
+    appView.hidden = !loggedIn;
+    document.documentElement.classList.toggle("is-authed", loggedIn);
+    document.title = loggedIn ? "待办清单" : "登录 · 待办清单";
+  }
+
+  function clearLoginError() {
+    loginError.textContent = "";
+    loginError.hidden = true;
+    usernameInput.removeAttribute("aria-invalid");
+    passwordInput.removeAttribute("aria-invalid");
+  }
+
+  function showLoginError(message, invalidFields) {
+    loginError.textContent = message;
+    loginError.hidden = false;
+    usernameInput.setAttribute(
+      "aria-invalid",
+      String(invalidFields.indexOf(usernameInput) !== -1)
+    );
+    passwordInput.setAttribute(
+      "aria-invalid",
+      String(invalidFields.indexOf(passwordInput) !== -1)
+    );
+  }
 
   function loadTodos() {
     try {
@@ -163,6 +226,43 @@
     render();
   }
 
+  loginForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+    var username = usernameInput.value.trim();
+    var password = passwordInput.value;
+
+    if (!username || !password) {
+      showLoginError("请输入账号和密码", [usernameInput, passwordInput]);
+      (username ? passwordInput : usernameInput).focus();
+      return;
+    }
+
+    if (username !== "admin" || password !== "admin") {
+      showLoginError("账号或密码错误，请重试", [usernameInput, passwordInput]);
+      passwordInput.value = "";
+      passwordInput.focus();
+      return;
+    }
+
+    saveSession("admin");
+    loginForm.reset();
+    clearLoginError();
+    showView();
+    render();
+  });
+
+  [usernameInput, passwordInput].forEach(function (field) {
+    field.addEventListener("input", clearLoginError);
+  });
+
+  logoutButton.addEventListener("click", function () {
+    saveSession(null);
+    loginForm.reset();
+    clearLoginError();
+    showView();
+    usernameInput.focus();
+  });
+
   form.addEventListener("submit", function (event) {
     event.preventDefault();
     var title = input.value.trim();
@@ -206,9 +306,14 @@
   });
 
   window.addEventListener("storage", function (event) {
-    if (event.key !== STORAGE_KEY) return;
-    state.todos = loadTodos();
-    render();
+    if (event.key === STORAGE_KEY) {
+      state.todos = loadTodos();
+      render();
+    } else if (event.key === SESSION_KEY) {
+      sessionUser = readSession();
+      showView();
+      if (isLoggedIn()) render();
+    }
   });
 
   today.textContent = new Intl.DateTimeFormat("zh-CN", {
@@ -217,5 +322,6 @@
     weekday: "long",
   }).format(new Date());
 
+  showView();
   render();
 })();
